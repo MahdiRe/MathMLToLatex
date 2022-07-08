@@ -10,7 +10,7 @@ PASSWORD = ''
 PORT = '5432'
 
 # district name is the database name.
-districts = [{"db_name": "demo"}]
+districts = [{"district_name": "demo"}]
 
 
 def newConnection(district):
