@@ -34,6 +34,14 @@ def mathml2latex_yarosh(equation):
     return unicode(newdom)
 
 
+def getMathMlCode(mathml):
+    if mathml[:7] == '<math> ':
+        mathml = "<math xmlns=\"http://www.w3.org/1998/Math/MathML\"> " + mathml[7:]
+    mathml = mathml.replace('\\\"', "'")
+    mathml = mathml.replace('\\n', "")
+    return mathml
+
+
 def converter():
     try:
         conn = newConnection(districts[0]['district_name'])
@@ -44,46 +52,36 @@ def converter():
 
         # display the PostgreSQL database server version
         content = cur.fetchone()
-        # print(content)
         
         for item in content[0]:
-            # print(item)
             if item != 'answer' and item != 'choicesArr':
-                # print(content[0][item])
-                # print (content[0][item])
                 soup = BeautifulSoup(content[0][item], 'html.parser')
+                if soup.mstyle != None:
+                    soup.math.mstyle.unwrap()
+                
                 maths = soup.find_all('math')
+                # print(maths)
                 
                 index = 0
                 while index < len(maths):
-                    mathml = str(maths[index])
-                    print('\nMathml: ' + mathml + '\n')
-                    if mathml[:7] == '<math> ':
-                        mathml = "<math xmlns=\"http://www.w3.org/1998/Math/MathML\"> " + mathml[7:]
-                        # print(mathml)
+                    mathml = getMathMlCode(str(maths[index]))
+                    print("MathMl: " + mathml + '\n')
+                    
                     latex = mathml2latex_yarosh(mathml)
+                    # print(type(latex))
                     latex = latex.replace("$", "")
+                    latex = latex.replace("\[", "")
+                    latex = latex.replace("\]", "")
+                    latex = latex.strip()
                     print('Latex: ' + latex + '\n')
                     index += 1
                     # create a schema 'temp' and create table 'question_update'
                     # Save into this, id / original question / updated content
 
-        
-        # mathml = """<prompt  xmlns:m=\"http://www.w3.org/1998/Math/MathML\" ><p>Graph the solution set to <span class=\"rsc_eqtn\"><math>   <mn>5</mn>   <mi>x</mi>   <mo>&#8722;<!-- &#8722; --></mo>   <mn>3</mn>   <mi>y</mi>   <mo>&lt;</mo>   <mo>&#8722;</mo>   <mn>15</mn> </math></span>.</p>  <p></p></prompt>"""
-        # if mathml[:7] == '<math> ':
-        #     mathml = "<math xmlns=\"http://www.w3.org/1998/Math/MathML\"> " + mathml[7:]
-        # print(mathml)
+
         # close the communication with the PostgreSQL
         cur.close()
 
-
-        # mathml = input('Enter MathML: ')
-        # if mathml[:7] == '<math> ':
-        #     mathml = "<math xmlns=\"http://www.w3.org/1998/Math/MathML\"> " + mathml[7:]
-
-        # latex = mathml2latex_yarosh(mathml)
-        # latex = latex.replace("$", "")
-        # print('Latex: ' + latex)
     except (Exception, psycopg2.DatabaseError) as error:
         print(error)
     except:
