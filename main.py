@@ -5,6 +5,7 @@ from lxml import etree
 from lxml.builder import unicode
 from psycopg2 import DatabaseError, connect
 from bs4 import BeautifulSoup
+import copy
 
 SERVERNAME = 'localhost'
 USERNAME = 'postgres'
@@ -59,11 +60,11 @@ def insertToTemp(conn, processed):
             Insert into temp.question_update(id, old_question_content, updated_question_content)
             values(%s,%s,%s)
             """
-        print(processed[0][2])
         cur.executemany(query, processed)
         conn.commit()
     except Exception as e:
         raise Exception(e)
+
 
 def converter():
     try:
@@ -78,24 +79,18 @@ def converter():
         contents = cur.fetchall()
         processed = []
         
-        # print(len(contents))
-        
         for content in contents:
-            # print(content)
-            # print('\n')
-
-            newContent = content[0]
+            oldContent = copy.deepcopy(content[0])
+            newContent = copy.deepcopy(content[0])
             ques_id = content[1]
             
-            
-            for item in content[0]:
-                if ('choice' in item and item != 'choicesArr') or item == 'question':
-                    # print(item)
-                    
-                    soup = BeautifulSoup(content[0][item], 'html.parser')
-                    # print(soup.math)
+            for item in oldContent:
+                if ('choice' in item and item != 'choicesArr') or item == 'question':                     
+                    soup = None
+                    soup = BeautifulSoup(oldContent[item], 'html.parser')
                     if soup.mstyle != None:
                         soup.math.mstyle.unwrap()
+                    maths = None
                     maths = soup.find_all('math')
                     
                     index = 0
@@ -103,32 +98,24 @@ def converter():
                         parent_span_id = maths[index].find_parent("span").get('id')
                         
                         mathml = getMathMlCode(str(maths[index]))
-                        # print("MathMl: " + mathml + '\n')
-                        
                         latex = getLatexCode(mathml)
-                        # print('Latex: ' + latex + '\n')
-
+                        
                         latex_tag = ('<span class="latexSpan" contenteditable="false" cursor="pointer"><span id="txtbox2"'
                         'class="latexTxtEdit" alttext="" contenteditable="false" style="cursor:pointer; font-size:;'
                         'color:; font-weight:; font-style: font-family:sans-serif">#latex#</span></span>')
 
                         latex_tag = latex_tag.replace("#latex#", latex)
                         
-
                         soup.find(id=parent_span_id).clear() # clear math
-                        soup.find(id=parent_span_id).append(soup.new_tag(latex_tag))
-
+                        soup.find(id=parent_span_id).append(soup.new_tag(latex_tag)) # Add latex
+                        
                         newContent[item] = str(soup)
-                        # print(newContent)
-                        # print('\n')
                         index += 1
-                        # create a schema 'temp' and create table 'question_update'
-                        # Save into this, id / original question / updated content
 
-            processed.append((ques_id, json.dumps(content[0]), json.dumps(newContent)))
+            processed.append((ques_id, json.dumps(oldContent), json.dumps(newContent)))
+            
         insertToTemp(conn, processed)
         
-
         # close the communication with the PostgreSQL
         cur.close()
 
@@ -140,7 +127,6 @@ def converter():
         if conn is not None:
             conn.close()
             print('Database connection closed.')
-
 
 if __name__ == '__main__':
     converter()
