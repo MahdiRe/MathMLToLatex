@@ -6,6 +6,7 @@ from lxml.builder import unicode
 from psycopg2 import DatabaseError, connect
 from bs4 import BeautifulSoup
 import copy
+import random
 
 SERVERNAME = 'localhost'
 USERNAME = 'postgres'
@@ -64,6 +65,15 @@ def insertToTemp(conn, processed):
         conn.commit()
     except Exception as e:
         raise Exception(e)
+    
+# def UpdateSystem(conn, processed):
+#     try:
+#         cur = conn.cursor()
+#         query = "UPDATE edg.asmt_question SET question_content=%s WHERE id='2073514';"
+#         cur.execute(query, [processed])
+#         conn.commit()
+#     except Exception as e:
+#         raise Exception(e)
 
 
 def converter():
@@ -100,21 +110,24 @@ def converter():
                         mathml = getMathMlCode(str(maths[index]))
                         latex = getLatexCode(mathml)
                         
-                        latex_tag = ('<span class="latexSpan" contenteditable="false" cursor="pointer"><span id="txtbox2"'
+                        latex_tag = ('<span class="latexSpan" contenteditable="false" cursor="pointer"><span id="txtbox#randomID#"'
                         'class="latexTxtEdit" alttext="" contenteditable="false" style="cursor:pointer; font-size:;'
                         'color:; font-weight:; font-style: font-family:sans-serif">#latex#</span></span>')
 
+                        latex_tag = latex_tag.replace("#randomID#", str(random.randint(0,1000)))
                         latex_tag = latex_tag.replace("#latex#", latex)
                         
                         soup.find(id=parent_span_id).clear() # clear math
                         soup.find(id=parent_span_id).append(soup.new_tag(latex_tag)) # Add latex
                         
-                        newContent[item] = str(soup)
+                        soup_str = str(soup).replace(">>", ">").replace("<<", "<")
+                        newContent[item] = soup_str
                         index += 1
 
             processed.append((ques_id, json.dumps(oldContent), json.dumps(newContent)))
             
-        insertToTemp(conn, processed)
+        # insertToTemp(conn, processed)
+        # UpdateSystem(conn, json.dumps(newContent))
         
         # close the communication with the PostgreSQL
         cur.close()
