@@ -1,8 +1,9 @@
+import json
 import sys
 import os
 from lxml import etree
 from lxml.builder import unicode
-from psycopg2 import connect
+from psycopg2 import DatabaseError, connect
 from bs4 import BeautifulSoup
 
 SERVERNAME = 'localhost'
@@ -51,59 +52,87 @@ def getLatexCode(mathml):
     return latex
 
 
+def insertToTemp(conn, processed):
+    try:
+        cur = conn.cursor()
+        query = """
+            Insert into temp.question_update(id, old_question_content, updated_question_content)
+            values(%s,%s,%s)
+            """
+        print(processed[0][2])
+        cur.executemany(query, processed)
+        conn.commit()
+    except Exception as e:
+        raise Exception(e)
+
 def converter():
     try:
         conn = newConnection(districts[0]['district_name'])
         cur = conn.cursor()
-        # cur.execute('SELECT question_content FROM edg.asmt_question OFFSET 0 LIMIT 1')
+        # cur.execute('SELECT question_content FROM edg.asmt_question OFFSET 0 LIMIT 2')
         # cur.execute('SELECT question_content FROM edg.asmt_question WHERE id = 6050457')
-        cur.execute('SELECT question_content FROM edg.asmt_question WHERE id = 2073509')
+        cur.execute('SELECT question_content, id FROM edg.asmt_question WHERE id = 2073509')
 
         # display the PostgreSQL database server version
-        content = cur.fetchone()
-
-        oldContent = content[0]
-        newContent = oldContent
+        # content = cur.fetchone()
+        contents = cur.fetchall()
+        processed = []
         
-        for item in content[0]:
-            # if ('choice' in item and item != 'choicesArr') or item == 'question':
-            if (item == 'question'):
-                soup = BeautifulSoup(content[0][item], 'html.parser')
-                if soup.mstyle != None:
-                    soup.math.mstyle.unwrap()
-                maths = soup.find_all('math')
-                
-                index = 0
-                while index < len(maths):
-                    parent_span_id = maths[index].find_parent("span").get('id')
+        # print(len(contents))
+        
+        for content in contents:
+            # print(content)
+            # print('\n')
+
+            newContent = content[0]
+            ques_id = content[1]
+            
+            
+            for item in content[0]:
+                if ('choice' in item and item != 'choicesArr') or item == 'question':
+                    # print(item)
                     
-                    mathml = getMathMlCode(str(maths[index]))
-                    # print("MathMl: " + mathml + '\n')
+                    soup = BeautifulSoup(content[0][item], 'html.parser')
+                    # print(soup.math)
+                    if soup.mstyle != None:
+                        soup.math.mstyle.unwrap()
+                    maths = soup.find_all('math')
                     
-                    latex = getLatexCode(mathml)
-                    # print('Latex: ' + latex + '\n')
+                    index = 0
+                    while index < len(maths):
+                        parent_span_id = maths[index].find_parent("span").get('id')
+                        
+                        mathml = getMathMlCode(str(maths[index]))
+                        # print("MathMl: " + mathml + '\n')
+                        
+                        latex = getLatexCode(mathml)
+                        # print('Latex: ' + latex + '\n')
 
-                    latex_tag = ('<span class="latexSpan" contenteditable="false" cursor="pointer"><span id="txtbox2"'
-                    'class="latexTxtEdit" alttext="" contenteditable="false" style="cursor:pointer; font-size:;'
-                    'color:; font-weight:; font-style: font-family:sans-serif">#latex#</span></span>')
+                        latex_tag = ('<span class="latexSpan" contenteditable="false" cursor="pointer"><span id="txtbox2"'
+                        'class="latexTxtEdit" alttext="" contenteditable="false" style="cursor:pointer; font-size:;'
+                        'color:; font-weight:; font-style: font-family:sans-serif">#latex#</span></span>')
 
-                    latex_tag = latex_tag.replace("#latex#", latex)
-                    
+                        latex_tag = latex_tag.replace("#latex#", latex)
+                        
 
-                    soup.find(id=parent_span_id).clear() # clear math
-                    soup.find(id=parent_span_id).append(soup.new_tag(latex_tag))
+                        soup.find(id=parent_span_id).clear() # clear math
+                        soup.find(id=parent_span_id).append(soup.new_tag(latex_tag))
 
-                    newContent[item] = str(soup)
-                    print(newContent)
-                    index += 1
-                    # create a schema 'temp' and create table 'question_update'
-                    # Save into this, id / original question / updated content
+                        newContent[item] = str(soup)
+                        # print(newContent)
+                        # print('\n')
+                        index += 1
+                        # create a schema 'temp' and create table 'question_update'
+                        # Save into this, id / original question / updated content
 
+            processed.append((ques_id, json.dumps(content[0]), json.dumps(newContent)))
+        insertToTemp(conn, processed)
+        
 
         # close the communication with the PostgreSQL
         cur.close()
 
-    except (Exception, psycopg2.DatabaseError) as error:
+    except (Exception, DatabaseError) as error:
         print(error)
     except:
         print("Please enter a valid MathML expression!")
