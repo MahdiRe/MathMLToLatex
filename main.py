@@ -42,6 +42,15 @@ def getMathMlCode(mathml):
     return mathml
 
 
+def getLatexCode(mathml):
+    latex = mathml2latex_yarosh(mathml)
+    latex = latex.replace("$", "")
+    latex = latex.replace("\[", "")
+    latex = latex.replace("\]", "")
+    latex = latex.strip()
+    return latex
+
+
 def converter():
     try:
         conn = newConnection(districts[0]['district_name'])
@@ -52,28 +61,40 @@ def converter():
 
         # display the PostgreSQL database server version
         content = cur.fetchone()
+
+        oldContent = content[0]
+        newContent = oldContent
         
         for item in content[0]:
-            if item != 'answer' and item != 'choicesArr':
+            # if ('choice' in item and item != 'choicesArr') or item == 'question':
+            if (item == 'question'):
                 soup = BeautifulSoup(content[0][item], 'html.parser')
                 if soup.mstyle != None:
                     soup.math.mstyle.unwrap()
-                
                 maths = soup.find_all('math')
-                # print(maths)
                 
                 index = 0
                 while index < len(maths):
-                    mathml = getMathMlCode(str(maths[index]))
-                    print("MathMl: " + mathml + '\n')
+                    parent_span_id = maths[index].find_parent("span").get('id')
                     
-                    latex = mathml2latex_yarosh(mathml)
-                    # print(type(latex))
-                    latex = latex.replace("$", "")
-                    latex = latex.replace("\[", "")
-                    latex = latex.replace("\]", "")
-                    latex = latex.strip()
-                    print('Latex: ' + latex + '\n')
+                    mathml = getMathMlCode(str(maths[index]))
+                    # print("MathMl: " + mathml + '\n')
+                    
+                    latex = getLatexCode(mathml)
+                    # print('Latex: ' + latex + '\n')
+
+                    latex_tag = ('<span class="latexSpan" contenteditable="false" cursor="pointer"><span id="txtbox2"'
+                    'class="latexTxtEdit" alttext="" contenteditable="false" style="cursor:pointer; font-size:;'
+                    'color:; font-weight:; font-style: font-family:sans-serif">#latex#</span></span>')
+
+                    latex_tag = latex_tag.replace("#latex#", latex)
+                    
+
+                    soup.find(id=parent_span_id).clear() # clear math
+                    soup.find(id=parent_span_id).append(soup.new_tag(latex_tag))
+
+                    newContent[item] = str(soup)
+                    print(newContent)
                     index += 1
                     # create a schema 'temp' and create table 'question_update'
                     # Save into this, id / original question / updated content
