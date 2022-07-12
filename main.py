@@ -66,6 +66,7 @@ def insertToTemp(conn, processed):
     except Exception as e:
         raise Exception(e)
     
+# # # This method is used only for testing purpose. It updates the specific question Id's question_content.
 # def UpdateSystem(conn, processed):
 #     try:
 #         cur = conn.cursor()
@@ -80,11 +81,12 @@ def converter():
     try:
         conn = newConnection(districts[0]['district_name'])
         cur = conn.cursor()
-        # cur.execute('SELECT question_content, id FROM edg.asmt_question OFFSET 0 LIMIT 2')
+        cur.execute('SELECT question_content, id FROM edg.asmt_question OFFSET 0 LIMIT 10')
         # cur.execute('SELECT question_content, id FROM edg.asmt_question WHERE id = 6050457')
         # cur.execute('SELECT question_content, id FROM edg.asmt_question WHERE id = 6050402')
         # cur.execute('SELECT question_content, id FROM edg.asmt_question WHERE id = 6045063')
-        # cur.execute('SELECT question_content, id FROM edg.asmt_question WHERE id = 6044967') # Have multiple images, could be string max size
+        # cur.execute('SELECT question_content, id FROM edg.asmt_question WHERE id = 6044967')
+        # cur.execute('SELECT question_content, id FROM edg.asmt_question WHERE id = 6044938') 
         # cur.execute('SELECT question_content, id FROM edg.asmt_question WHERE id = 2073509') # new
 
         contents = cur.fetchall()
@@ -98,14 +100,26 @@ def converter():
             for item in oldContent:
                 if ('choice' in item and item != 'choicesArr') or item == 'question':                     
                     soup = None
-                    soup = BeautifulSoup(oldContent[item], 'html.parser')
-                    if soup.mstyle != None:
-                        soup.math.mstyle.unwrap()
+                    soup = BeautifulSoup("<p>"+oldContent[item]+"</p>", 'html.parser')
+                    
+                    if soup.prompt != None:
+                        soup.prompt.unwrap()
                     maths = None
+                    
+                    for divs in soup.find_all('div'):
+                        divs.parent.div.unwrap()
+                    
                     maths = soup.find_all('math')
                     
                     index = 0
                     while index < len(maths):
+                        
+                        if maths[index].mstyle != None:
+                            maths[index].mstyle.unwrap()
+                            
+                        if maths[index].find_parent("span") == None:
+                            maths[index].parent.math.wrap(soup.new_tag("span")).attrs['id'] = "mathml" + str(random.randint(0,1000))
+                        
                         isId = True
                         parent_span_id = maths[index].find_parent("span").get('id')
                         if parent_span_id == None:
@@ -130,16 +144,12 @@ def converter():
                             soup.find("span", {"class":parent_span_id}).clear() # clear math
                             # soup.find("span", {"class":parent_span_id}).append(soup.new_tag(latex_tag)) # Add latex
                             soup.find("span", {"class":parent_span_id}).append("#ReplaceLatexHere#") # Add latex
-                            
-                        if soup.prompt != None:
-                            soup.prompt.unwrap()
-                        if soup.div != None:
-                            soup.div.unwrap()
                         
-                        wrap_p = "<p>#ContentReplace#</p>"
                         soup_str = str(soup).replace("#ReplaceLatexHere#", latex_tag)
-                        soup_str = wrap_p.replace("#ContentReplace#", soup_str)
                         # soup_str = str(soup).replace(">>", ">").replace("<<", "<")
+                        
+                        print(soup.prettify())
+                        
                         newContent[item] = soup_str
                         index += 1
             
@@ -151,6 +161,7 @@ def converter():
             processed.append((ques_id, json.dumps(oldContent), json.dumps(newContent)))
             
         insertToTemp(conn, processed)
+        # For testing purpose only
         # UpdateSystem(conn, json.dumps(newContent))
         
         # close the communication with the PostgreSQL
