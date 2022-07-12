@@ -80,12 +80,13 @@ def converter():
     try:
         conn = newConnection(districts[0]['district_name'])
         cur = conn.cursor()
-        # cur.execute('SELECT question_content FROM edg.asmt_question OFFSET 0 LIMIT 2')
-        # cur.execute('SELECT question_content FROM edg.asmt_question WHERE id = 6050457')
-        cur.execute('SELECT question_content, id FROM edg.asmt_question WHERE id = 2073509')
+        # cur.execute('SELECT question_content, id FROM edg.asmt_question OFFSET 0 LIMIT 2')
+        # cur.execute('SELECT question_content, id FROM edg.asmt_question WHERE id = 6050457')
+        # cur.execute('SELECT question_content, id FROM edg.asmt_question WHERE id = 6050402')
+        # cur.execute('SELECT question_content, id FROM edg.asmt_question WHERE id = 6045063')
+        # cur.execute('SELECT question_content, id FROM edg.asmt_question WHERE id = 6044967') # Have multiple images, could be string max size
+        # cur.execute('SELECT question_content, id FROM edg.asmt_question WHERE id = 2073509') # new
 
-        # display the PostgreSQL database server version
-        # content = cur.fetchone()
         contents = cur.fetchall()
         processed = []
         
@@ -105,7 +106,11 @@ def converter():
                     
                     index = 0
                     while index < len(maths):
+                        isId = True
                         parent_span_id = maths[index].find_parent("span").get('id')
+                        if parent_span_id == None:
+                            isId = False
+                            parent_span_id = maths[index].find_parent("span").get('class')
                         
                         mathml = getMathMlCode(str(maths[index]))
                         latex = getLatexCode(mathml)
@@ -117,16 +122,35 @@ def converter():
                         latex_tag = latex_tag.replace("#randomID#", str(random.randint(0,1000)))
                         latex_tag = latex_tag.replace("#latex#", latex)
                         
-                        soup.find(id=parent_span_id).clear() # clear math
-                        soup.find(id=parent_span_id).append(soup.new_tag(latex_tag)) # Add latex
+                        if isId:
+                            soup.find(id=parent_span_id).clear() # clear math
+                            # soup.find(id=parent_span_id).append(soup.new_tag(latex_tag)) # Add latex
+                            soup.find(id=parent_span_id).append("#ReplaceLatexHere#") # Add latex
+                        else:
+                            soup.find("span", {"class":parent_span_id}).clear() # clear math
+                            # soup.find("span", {"class":parent_span_id}).append(soup.new_tag(latex_tag)) # Add latex
+                            soup.find("span", {"class":parent_span_id}).append("#ReplaceLatexHere#") # Add latex
+                            
+                        if soup.prompt != None:
+                            soup.prompt.unwrap()
+                        if soup.div != None:
+                            soup.div.unwrap()
                         
-                        soup_str = str(soup).replace(">>", ">").replace("<<", "<")
+                        wrap_p = "<p>#ContentReplace#</p>"
+                        soup_str = str(soup).replace("#ReplaceLatexHere#", latex_tag)
+                        soup_str = wrap_p.replace("#ContentReplace#", soup_str)
+                        # soup_str = str(soup).replace(">>", ">").replace("<<", "<")
                         newContent[item] = soup_str
                         index += 1
+            
+            # print(oldContent['question'])
+            # print('=============')
+            # print(newContent['question'])
+            # print('\n')
 
             processed.append((ques_id, json.dumps(oldContent), json.dumps(newContent)))
             
-        # insertToTemp(conn, processed)
+        insertToTemp(conn, processed)
         # UpdateSystem(conn, json.dumps(newContent))
         
         # close the communication with the PostgreSQL
