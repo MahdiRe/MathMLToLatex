@@ -63,6 +63,7 @@ def insertToTemp(conn, processed):
             """
         cur.executemany(query, processed)
         conn.commit()
+        print("Inserted to DB successfully")
     except Exception as e:
         raise Exception(e)
     
@@ -73,6 +74,7 @@ def insertToTemp(conn, processed):
 #         query = "UPDATE edg.asmt_question SET question_content=%s WHERE id='2073514';"
 #         cur.execute(query, [processed])
 #         conn.commit()
+#         print('Updated the question id 2073514 question content successfully')
 #     except Exception as e:
 #         raise Exception(e)
 
@@ -106,13 +108,15 @@ def converter():
             ques_id = content[1]
                
             for item in oldContent:
-                if ('choice' in item and item != 'choicesArr') or item == 'question':                              
+                if ('choice' in item and item != 'choicesArr') or item == 'question':                             
                     soup = None
-                    soup = BeautifulSoup("<p>"+oldContent[item]+"</p>", 'html.parser')
+                    if oldContent[item][:3] == '<p>' or oldContent[item][:5] == '<div>':
+                        soup = BeautifulSoup(oldContent[item], 'html.parser')
+                    else:
+                        soup = BeautifulSoup("<p>"+oldContent[item]+"</p>", 'html.parser')
                     
                     if soup.prompt != None:
                         soup.prompt.unwrap()
-                    maths = None
                     
                     for divs in soup.find_all('div'):
                         divs.parent.div.wrap(soup.new_tag("p"))
@@ -125,6 +129,7 @@ def converter():
                     # for sups in soup.find_all('sup'):
                     #     sups.parent.sup.unwrap()
                     
+                    maths = None
                     maths = soup.find_all('math')
                     
                     latex_dict = {}
