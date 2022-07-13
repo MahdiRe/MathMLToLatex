@@ -86,8 +86,16 @@ def converter():
         # cur.execute('SELECT question_content, id FROM edg.asmt_question WHERE id = 6050402')
         # cur.execute('SELECT question_content, id FROM edg.asmt_question WHERE id = 6045063')
         # cur.execute('SELECT question_content, id FROM edg.asmt_question WHERE id = 6044967')
-        # cur.execute('SELECT question_content, id FROM edg.asmt_question WHERE id = 6044938') 
+        # cur.execute('SELECT question_content, id FROM edg.asmt_question WHERE id = 6044938') # Breaking due to <p> in quill editor
         # cur.execute('SELECT question_content, id FROM edg.asmt_question WHERE id = 2073509') # new
+        # cur.execute('SELECT question_content, id FROM edg.asmt_question WHERE id = 6044938')
+        # cur.execute('SELECT question_content, id FROM edg.asmt_question WHERE id = 6044809') # p issue there
+        # cur.execute('SELECT question_content, id FROM edg.asmt_question WHERE id = 6043085')
+        # cur.execute('SELECT question_content, id FROM edg.asmt_question WHERE id = 6043274') # changes: replace div with p tags ot make the breaks 4070662
+        # cur.execute('SELECT question_content, id FROM edg.asmt_question WHERE id = 4070662')
+        # cur.execute('SELECT question_content, id FROM edg.asmt_question WHERE id = 4070663') # Format in answer component not proper, but working fine
+        # cur.execute('SELECT question_content, id FROM edg.asmt_question WHERE id = 4070664') 
+        
 
         contents = cur.fetchall()
         processed = []
@@ -96,9 +104,9 @@ def converter():
             oldContent = copy.deepcopy(content[0])
             newContent = copy.deepcopy(content[0])
             ques_id = content[1]
-            
+               
             for item in oldContent:
-                if ('choice' in item and item != 'choicesArr') or item == 'question':                     
+                if ('choice' in item and item != 'choicesArr') or item == 'question':                              
                     soup = None
                     soup = BeautifulSoup("<p>"+oldContent[item]+"</p>", 'html.parser')
                     
@@ -107,24 +115,33 @@ def converter():
                     maths = None
                     
                     for divs in soup.find_all('div'):
+                        divs.parent.div.wrap(soup.new_tag("p"))
                         divs.parent.div.unwrap()
+                        
+                    # Removing ems and sups work, but latex span is wrapped inside a p!!!
+                    # for ems in soup.find_all('em'):
+                    #     ems.parent.em.unwrap()
+                    
+                    # for sups in soup.find_all('sup'):
+                    #     sups.parent.sup.unwrap()
                     
                     maths = soup.find_all('math')
                     
+                    latex_dict = {}
                     index = 0
                     while index < len(maths):
                         
                         if maths[index].mstyle != None:
                             maths[index].mstyle.unwrap()
-                            
+                        
+                        # If mathml is not wrapped in a <span>
                         if maths[index].find_parent("span") == None:
                             maths[index].parent.math.wrap(soup.new_tag("span")).attrs['id'] = "mathml" + str(random.randint(0,1000))
+                        # If mathml wrapped in a <span>, but no id
+                        elif maths[index].find_parent("span").get('id') == None:
+                            maths[index].parent.math.attrs['id'] = "mathml" + str(random.randint(0,1000))
                         
-                        isId = True
                         parent_span_id = maths[index].find_parent("span").get('id')
-                        if parent_span_id == None:
-                            isId = False
-                            parent_span_id = maths[index].find_parent("span").get('class')
                         
                         mathml = getMathMlCode(str(maths[index]))
                         latex = getLatexCode(mathml)
@@ -135,25 +152,21 @@ def converter():
 
                         latex_tag = latex_tag.replace("#randomID#", str(random.randint(0,1000)))
                         latex_tag = latex_tag.replace("#latex#", latex)
+                            
+                        soup.find(id=parent_span_id).clear() # clear mathml content
                         
-                        if isId:
-                            soup.find(id=parent_span_id).clear() # clear math
-                            # soup.find(id=parent_span_id).append(soup.new_tag(latex_tag)) # Add latex
-                            soup.find(id=parent_span_id).append("#ReplaceLatexHere#") # Add latex
-                        else:
-                            soup.find("span", {"class":parent_span_id}).clear() # clear math
-                            # soup.find("span", {"class":parent_span_id}).append(soup.new_tag(latex_tag)) # Add latex
-                            soup.find("span", {"class":parent_span_id}).append("#ReplaceLatexHere#") # Add latex
+                        replace_code = "#ReplaceLatexHere"+ str(index) +"#"
+                        soup.find(id=parent_span_id).append(replace_code) # Add latex
+                        latex_dict[replace_code] = latex_tag
                         
-                        soup_str = str(soup).replace("#ReplaceLatexHere#", latex_tag)
-                        # soup_str = str(soup).replace(">>", ">").replace("<<", "<")
-                        
-                        print(soup.prettify())
-                        
-                        newContent[item] = soup_str
                         index += 1
+                        
+                    soup_str = str(soup)
+                    for key in latex_dict.keys():
+                        soup_str = soup_str.replace(key, latex_dict[key])
+                    newContent[item] = soup_str
             
-            # print(oldContent['question'])
+         # print(oldContent['question'])
             # print('=============')
             # print(newContent['question'])
             # print('\n')
