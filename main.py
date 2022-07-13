@@ -96,7 +96,8 @@ def converter():
         # cur.execute('SELECT question_content, id FROM edg.asmt_question WHERE id = 6043274') # changes: replace div with p tags ot make the breaks 4070662
         # cur.execute('SELECT question_content, id FROM edg.asmt_question WHERE id = 4070662')
         # cur.execute('SELECT question_content, id FROM edg.asmt_question WHERE id = 4070663') # Format in answer component not proper, but working fine
-        # cur.execute('SELECT question_content, id FROM edg.asmt_question WHERE id = 4070664') 
+        # cur.execute('SELECT question_content, id FROM edg.asmt_question WHERE id = 4070664')
+        # cur.execute('SELECT question_content, id FROM edg.asmt_question WHERE id = 6050401') 
         
 
         contents = cur.fetchall()
@@ -115,8 +116,10 @@ def converter():
                     else:
                         soup = BeautifulSoup("<p>"+oldContent[item]+"</p>", 'html.parser')
                     
-                    if soup.prompt != None:
-                        soup.prompt.unwrap()
+                    for prompts in soup.find_all('prompt'):
+                        prompts.parent.prompt.wrap(soup.new_tag("span"))
+                        prompts.parent.prompt.unwrap()
+                    
                     
                     for divs in soup.find_all('div'):
                         divs.parent.div.wrap(soup.new_tag("p"))
@@ -144,10 +147,12 @@ def converter():
                             maths[index].parent.math.wrap(soup.new_tag("span")).attrs['id'] = "mathml" + str(random.randint(0,1000))
                         # If mathml wrapped in a <span>, but no id
                         elif maths[index].find_parent("span").get('id') == None:
-                            maths[index].parent.math.attrs['id'] = "mathml" + str(random.randint(0,1000))
+                            maths[index].parent.attrs['id'] = "mathml" + str(random.randint(0,1000))
+                            
+                            
                         
                         parent_span_id = maths[index].find_parent("span").get('id')
-                        
+                                               
                         mathml = getMathMlCode(str(maths[index]))
                         latex = getLatexCode(mathml)
                         
@@ -158,7 +163,7 @@ def converter():
                         latex_tag = latex_tag.replace("#randomID#", str(random.randint(0,1000)))
                         latex_tag = latex_tag.replace("#latex#", latex)
                             
-                        soup.find(id=parent_span_id).clear() # clear mathml content
+                        soup.find(id=parent_span_id).clear() # clear mathml content 
                         
                         replace_code = "#ReplaceLatexHere"+ str(index) +"#"
                         soup.find(id=parent_span_id).append(replace_code) # Add latex
