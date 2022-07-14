@@ -83,23 +83,7 @@ def converter():
     try:
         conn = newConnection(districts[0]['district_name'])
         cur = conn.cursor()
-        # cur.execute('SELECT question_content, id FROM edg.asmt_question OFFSET 0 LIMIT 10')
-        # cur.execute('SELECT question_content, id FROM edg.asmt_question WHERE id = 6050457')
-        # cur.execute('SELECT question_content, id FROM edg.asmt_question WHERE id = 6050402')
-        # cur.execute('SELECT question_content, id FROM edg.asmt_question WHERE id = 6045063')
-        # cur.execute('SELECT question_content, id FROM edg.asmt_question WHERE id = 6044967')
-        # cur.execute('SELECT question_content, id FROM edg.asmt_question WHERE id = 6044938') # Breaking due to <p> in quill editor
-        # cur.execute('SELECT question_content, id FROM edg.asmt_question WHERE id = 2073509') # new
-        # cur.execute('SELECT question_content, id FROM edg.asmt_question WHERE id = 6044938')
-        # cur.execute('SELECT question_content, id FROM edg.asmt_question WHERE id = 6044809') # p issue there
-        # cur.execute('SELECT question_content, id FROM edg.asmt_question WHERE id = 6043085')
-        # cur.execute('SELECT question_content, id FROM edg.asmt_question WHERE id = 6043274') # changes: replace div with p tags ot make the breaks 4070662
-        # cur.execute('SELECT question_content, id FROM edg.asmt_question WHERE id = 4070662')
-        # cur.execute('SELECT question_content, id FROM edg.asmt_question WHERE id = 4070663') # Format in answer component not proper, but working fine
-        # cur.execute('SELECT question_content, id FROM edg.asmt_question WHERE id = 4070664')
-        # cur.execute('SELECT question_content, id FROM edg.asmt_question WHERE id = 6050401') 
-        cur.execute('SELECT question_content, id FROM edg.asmt_question WHERE id = 6044716') 
-        
+        cur.execute('SELECT question_content, id FROM edg.asmt_question WHERE id = 6043862') 
 
         contents = cur.fetchall()
         processed = []
@@ -119,20 +103,12 @@ def converter():
                     
                     for prompts in soup.find_all('prompt'):
                         prompts.parent.prompt.wrap(soup.new_tag("span"))
-                        prompts.parent.prompt.unwrap()
-                    
+                        prompts.parent.prompt.unwrap()     
                     
                     for divs in soup.find_all('div'):
                         divs.parent.div.wrap(soup.new_tag("p"))
                         divs.parent.div.unwrap()
-                        
-                    # Removing ems and sups work, but latex span is wrapped inside a p!!!
-                    # for ems in soup.find_all('em'):
-                    #     ems.parent.em.unwrap()
-                    
-                    # for sups in soup.find_all('sup'):
-                    #     sups.parent.sup.unwrap()
-                    
+                                        
                     maths = None
                     maths = soup.find_all('math')
                     
