@@ -68,22 +68,22 @@ def insertToTemp(conn, processed):
         raise Exception(e)
     
 # # # This method is used only for testing purpose. It updates the specific question Id's question_content.
-def UpdateSystem(conn, processed):
-    try:
-        cur = conn.cursor()
-        query = "UPDATE edg.asmt_question SET question_content=%s WHERE id='2073514';"
-        cur.execute(query, [processed])
-        conn.commit()
-        print('Updated the question id 2073514 question content successfully')
-    except Exception as e:
-        raise Exception(e)
+# def UpdateSystem(conn, processed):
+#     try:
+#         cur = conn.cursor()
+#         query = "UPDATE edg.asmt_question SET question_content=%s WHERE id='2073514';"
+#         cur.execute(query, [processed])
+#         conn.commit()
+#         print('Updated the question id 2073514 question content successfully')
+#     except Exception as e:
+#         raise Exception(e)
 
 
 def converter():
     try:
         conn = newConnection(districts[0]['district_name'])
         cur = conn.cursor()
-        cur.execute('SELECT question_content, id FROM edg.asmt_question WHERE id = 6043862') 
+        cur.execute('SELECT question_content, id FROM edg.asmt_question OFFSET 0 LIMIT 10')
 
         contents = cur.fetchall()
         processed = []
@@ -100,15 +100,15 @@ def converter():
                         soup = BeautifulSoup(oldContent[item], 'html.parser')
                     else:
                         soup = BeautifulSoup("<p>"+oldContent[item]+"</p>", 'html.parser')
-                    
+                   
                     for prompts in soup.find_all('prompt'):
                         prompts.parent.prompt.wrap(soup.new_tag("span"))
-                        prompts.parent.prompt.unwrap()     
-                    
+                        prompts.parent.prompt.unwrap() 
+                  
                     for divs in soup.find_all('div'):
                         divs.parent.div.wrap(soup.new_tag("p"))
                         divs.parent.div.unwrap()
-                                        
+                                     
                     maths = None
                     maths = soup.find_all('math')
                     
@@ -145,17 +145,12 @@ def converter():
                     for key in latex_dict.keys():
                         soup_str = soup_str.replace(key, latex_dict[key])
                     newContent[item] = soup_str
-            
-         # print(oldContent['question'])
-            # print('=============')
-            # print(newContent['question'])
-            # print('\n')
-
+                                
             processed.append((ques_id, json.dumps(oldContent), json.dumps(newContent)))
             
-        # insertToTemp(conn, processed)
+        insertToTemp(conn, processed)
         # For testing purpose only
-        UpdateSystem(conn, json.dumps(newContent))
+        # UpdateSystem(conn, json.dumps(newContent))
         
         # close the communication with the PostgreSQL
         cur.close()
