@@ -98,7 +98,7 @@ def converter():
         # cur.execute('SELECT question_content, id FROM edg.asmt_question WHERE id = 4070663') # Format in answer component not proper, but working fine
         # cur.execute('SELECT question_content, id FROM edg.asmt_question WHERE id = 4070664')
         # cur.execute('SELECT question_content, id FROM edg.asmt_question WHERE id = 6050401') 
-        cur.execute('SELECT question_content, id FROM edg.asmt_question WHERE id = q_id') 
+        cur.execute('SELECT question_content, id FROM edg.asmt_question WHERE id = 6044716') 
         
 
         contents = cur.fetchall()
@@ -109,7 +109,7 @@ def converter():
             newContent = copy.deepcopy(content[0])
             ques_id = content[1]
                
-            for item in oldContent:
+            for item in oldContent:                            
                 if ('choice' in item and item != 'choicesArr') or item == 'question':                             
                     soup = None
                     if oldContent[item][:3] == '<p>' or oldContent[item][:5] == '<div>':
@@ -143,20 +143,13 @@ def converter():
                         if maths[index].mstyle != None:
                             maths[index].mstyle.unwrap()
                         
-                        # If mathml is not wrapped in a <span>
-                        if maths[index].find_parent("span") == None:
-                            maths[index].parent.math.wrap(soup.new_tag("span")).attrs['id'] = "mathml" + str(random.randint(0,1000))
-                        # If mathml wrapped in a <span>, but no id
-                        elif maths[index].find_parent("span").get('id') == None:
-                            maths[index].parent.attrs['id'] = "mathml" + str(random.randint(0,1000))
-                            
-                            
-                        
-                        parent_span_id = maths[index].find_parent("span").get('id')
+                        # wrap mathml in a <span>
+                        parent_span_id = "mathml" + str(random.randint(0,1000))
+                        maths[index].parent.math.wrap(soup.new_tag("span")).attrs['id'] = parent_span_id
                                                
                         mathml = getMathMlCode(str(maths[index]))
                         latex = getLatexCode(mathml)
-                        
+
                         latex_tag = ('<span class="latexSpan" contenteditable="false" cursor="pointer"><span id="txtbox#randomID#"'
                         'class="latexTxtEdit" alttext="" contenteditable="false" style="cursor:pointer; font-size:;'
                         'color:; font-weight:; font-style: font-family:sans-serif">#latex#</span></span>')
@@ -165,7 +158,7 @@ def converter():
                         latex_tag = latex_tag.replace("#latex#", latex)
                             
                         soup.find(id=parent_span_id).clear() # clear mathml content 
-                        
+                                                
                         replace_code = "#ReplaceLatexHere"+ str(index) +"#"
                         soup.find(id=parent_span_id).append(replace_code) # Add latex
                         latex_dict[replace_code] = latex_tag
