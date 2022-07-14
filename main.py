@@ -68,22 +68,22 @@ def insertToTemp(conn, processed):
         raise Exception(e)
     
 # # # This method is used only for testing purpose. It updates the specific question Id's question_content.
-# def UpdateSystem(conn, processed):
-#     try:
-#         cur = conn.cursor()
-#         query = "UPDATE edg.asmt_question SET question_content=%s WHERE id='2073514';"
-#         cur.execute(query, [processed])
-#         conn.commit()
-#         print('Updated the question id 2073514 question content successfully')
-#     except Exception as e:
-#         raise Exception(e)
+def UpdateSystem(conn, processed):
+    try:
+        cur = conn.cursor()
+        query = "UPDATE edg.asmt_question SET question_content=%s WHERE id='2073514';"
+        cur.execute(query, [processed])
+        conn.commit()
+        print('Updated the question id 2073514 question content successfully')
+    except Exception as e:
+        raise Exception(e)
 
 
 def converter():
     try:
         conn = newConnection(districts[0]['district_name'])
         cur = conn.cursor()
-        cur.execute('SELECT question_content, id FROM edg.asmt_question OFFSET 0 LIMIT 10')
+        # cur.execute('SELECT question_content, id FROM edg.asmt_question OFFSET 0 LIMIT 10')
         # cur.execute('SELECT question_content, id FROM edg.asmt_question WHERE id = 6050457')
         # cur.execute('SELECT question_content, id FROM edg.asmt_question WHERE id = 6050402')
         # cur.execute('SELECT question_content, id FROM edg.asmt_question WHERE id = 6045063')
@@ -98,6 +98,7 @@ def converter():
         # cur.execute('SELECT question_content, id FROM edg.asmt_question WHERE id = 4070663') # Format in answer component not proper, but working fine
         # cur.execute('SELECT question_content, id FROM edg.asmt_question WHERE id = 4070664')
         # cur.execute('SELECT question_content, id FROM edg.asmt_question WHERE id = 6050401') 
+        cur.execute('SELECT question_content, id FROM edg.asmt_question WHERE id = q_id') 
         
 
         contents = cur.fetchall()
@@ -183,9 +184,9 @@ def converter():
 
             processed.append((ques_id, json.dumps(oldContent), json.dumps(newContent)))
             
-        insertToTemp(conn, processed)
+        # insertToTemp(conn, processed)
         # For testing purpose only
-        # UpdateSystem(conn, json.dumps(newContent))
+        UpdateSystem(conn, json.dumps(newContent))
         
         # close the communication with the PostgreSQL
         cur.close()
