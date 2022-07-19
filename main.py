@@ -47,9 +47,13 @@ def getMathMlCode(mathml):
 
 def getLatexCode(mathml):
     latex = mathml2latex_yarosh(mathml)
-    latex = latex.replace("$", "")
-    latex = latex.replace("\[", "")
-    latex = latex.replace("\]", "")
+    
+    # Remove prefix and post fix dollar signs
+    if latex[:1] == "$":
+        latex = latex[1:]
+    if latex[-1] == "$":
+        latex = latex[:-1]
+    
     latex = latex.strip()
     return latex
 
@@ -125,7 +129,7 @@ def converter():
                                                
                         mathml = getMathMlCode(str(maths[index]))
                         latex = getLatexCode(mathml)
-
+                        
                         latex_tag = ('<span class="latexSpan" contenteditable="false" cursor="pointer"><span id="txtbox#randomID#"'
                         'class="latexTxtEdit" alttext="" contenteditable="false" style="cursor:pointer; font-size:;'
                         'color:; font-weight:; font-style: font-family:sans-serif">#latex#</span></span>')
