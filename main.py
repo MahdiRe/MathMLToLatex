@@ -97,7 +97,7 @@ def converter():
             newContent = copy.deepcopy(content[0])
             ques_id = content[1]
                
-            for item in oldContent:                            
+            for item in oldContent:                        
                 if ('choice' in item and item != 'choicesArr') or item == 'question':                             
                     soup = None
                     if oldContent[item][:3] == '<p>' or oldContent[item][:5] == '<div>':
@@ -106,13 +106,13 @@ def converter():
                         soup = BeautifulSoup("<p>"+oldContent[item]+"</p>", 'html.parser')
                    
                     for prompts in soup.find_all('prompt'):
-                        prompts.parent.prompt.wrap(soup.new_tag("span"))
+                        prompts.parent.prompt.wrap(soup.new_tag("p"))
                         prompts.parent.prompt.unwrap() 
                   
                     for divs in soup.find_all('div'):
                         divs.parent.div.wrap(soup.new_tag("p"))
                         divs.parent.div.unwrap()
-                                     
+                                   
                     maths = None
                     maths = soup.find_all('math')
                     
