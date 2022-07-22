@@ -72,22 +72,22 @@ def insertToTemp(conn, processed):
         raise Exception(e)
     
 # # # This method is used only for testing purpose. It updates the specific question Id's question_content.
-def UpdateSystem(conn, processed):
-    try:
-        cur = conn.cursor()
-        query = "UPDATE edg.asmt_question SET question_content=%s WHERE id='2073514';"
-        cur.execute(query, [processed])
-        conn.commit()
-        print('Updated the question id 2073514 question content successfully')
-    except Exception as e:
-        raise Exception(e)
+# def UpdateSystem(conn, processed):
+#     try:
+#         cur = conn.cursor()
+#         query = "UPDATE edg.asmt_question SET question_content=%s WHERE id='2073514';"
+#         cur.execute(query, [processed])
+#         conn.commit()
+#         print('Updated the question id 2073514 question content successfully')
+#     except Exception as e:
+#         raise Exception(e)
 
 
 def converter():
     try:
         conn = newConnection(districts[0]['district_name'])
         cur = conn.cursor()
-        cur.execute('SELECT question_content, id FROM edg.asmt_question WHERE id = 6043835')
+        cur.execute('SELECT question_content, id FROM edg.asmt_question OFFSET 0 LIMIT 10')
 
         contents = cur.fetchall()
         processed = []
@@ -100,8 +100,9 @@ def converter():
             for item in oldContent:                        
                 if ('choice' in item and item != 'choicesArr') or item == 'question':                             
                     soup = None
-                    # if oldContent[item][:3] == '<p>' or oldContent[item][:5] == '<div>':
                     soup = BeautifulSoup(oldContent[item], 'html.parser')
+                    # if oldContent[item][:3] == '<p>' or oldContent[item][:5] == '<div>':
+                        # soup = BeautifulSoup(oldContent[item], 'html.parser')
                     # else:
                         # soup = BeautifulSoup("<p>"+oldContent[item]+"</p>", 'html.parser')
                    
@@ -152,9 +153,9 @@ def converter():
                                 
             processed.append((ques_id, json.dumps(oldContent), json.dumps(newContent)))
             
-        # insertToTemp(conn, processed)
+        insertToTemp(conn, processed)
         # For testing purpose only
-        UpdateSystem(conn, json.dumps(newContent))
+        # UpdateSystem(conn, json.dumps(newContent))
         
         # close the communication with the PostgreSQL
         cur.close()
